@@ -221,7 +221,7 @@ float2x2 covariance_3d_to_2d(Camera cam, float3 xyz_ws, float3x3 cov_ws) {
 }
 
 [Differentiable]
-Gaussian load_gaussian(uint32_t g_idx,
+Gaussian load_gaussian(int32_t g_idx,
                        DiffTensorView xyz_vs,
                        DiffTensorView inv_cov_vs,
                        DiffTensorView opacity,
@@ -247,6 +247,7 @@ float4 evaluate_gaussian(Gaussian g,
                          uint32_t H,
                          uint32_t W)
 {
+
     float3 g_xyz = g.xyz_vs;
     float3 g_rgb = g.rgb;
     float g_opacity = g.opacity;
@@ -258,7 +259,7 @@ float4 evaluate_gaussian(Gaussian g,
                            g_inv_cov_vs[1][1] * d.y * d.y + (g_inv_cov_vs[0][1] + g_inv_cov_vs[1][0]) * d.x * d.y);
     float alpha = min(0.99f, g_opacity * exp(power));
     float3 premult_rgb = g_rgb * alpha;
-
+    
     return float4(premult_rgb, alpha);
 }
 

@@ -16,28 +16,32 @@ import torch
 import submodules.slang_gaussian_rasterization.internal.utils as gs_render_utils
 import submodules.slang_gaussian_rasterization.internal.slang.slang_modules as slang_modules
 from submodules.slang_gaussian_rasterization.internal.tile_shader_slang import tile_shader
-import numpy as np
 
 def set_grad(var):
     def hook(grad):
         var.grad = grad
     return hook
 
-def render_alpha_blend_tiles_slang_raw(xyz_ws, cov_ws, rgb, opacity,
-                                       world_view_transform, proj_mat,
+def render_alpha_blend_tiles_slang_raw(xyz_ws, rotations, scales, opacity, 
+                                       sh_coeffs, active_sh,
+                                       world_view_transform, proj_mat, cam_pos,
                                        fovy, fovx, height, width, tile_size=16):
     
     render_grid = gs_render_utils.RenderGrid(height,
                                              width,
                                              tile_height=tile_size,
                                              tile_width=tile_size)
-    sorted_gauss_idx, tile_ranges, radii, xyz_vs, inv_cov_vs = tile_shader(xyz_ws,
-                                                                           cov_ws,
-                                                                           world_view_transform,
-                                                                           proj_mat,
-                                                                           fovy,
-                                                                           fovx,
-                                                                           render_grid)
+    sorted_gauss_idx, tile_ranges, radii, xyz_vs, inv_cov_vs, rgb = tile_shader(xyz_ws,
+                                                                                rotations,
+                                                                                scales,
+                                                                                sh_coeffs,
+                                                                                active_sh,
+                                                                                world_view_transform,
+                                                                                proj_mat,
+                                                                                cam_pos,
+                                                                                fovy,
+                                                                                fovx,
+                                                                                render_grid)
    
     # retain_grad fails if called with torch.no_grad() under evaluation
     try:
@@ -60,7 +64,7 @@ def render_alpha_blend_tiles_slang_raw(xyz_ws, cov_ws, rgb, opacity,
         'visibility_filter': radii > 0,
         'radii': radii,
     }
-    
+
     return render_pkg
 
 

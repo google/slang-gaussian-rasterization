@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import utils;
+import spherical_harmonics;
 
 struct rectangle {
     float min_x;
@@ -42,18 +43,41 @@ rectangle get_rectangle_tile_space(
     return rect_tile_space;
 }
 
+[Differentiable]
+float3x3 get_covariance_from_quat_scales(float4 q, float3 s) {
+    float r=q[0], x=q[1], y=q[2], z=q[3];
+
+    float3x3 rotation_matrix = float3x3(
+        1 - 2 * (y * y + z * z), 2 * (x * y - r * z)    , 2 * (x * z + r * y),
+        2 * (x * y + r * z)    , 1 - 2 * (x * x + z * z), 2 * (y * z - r * x),
+        2 * (x * z - r * y)    , 2 * (y * z + r * x)    , 1 - 2 * (x * x + y * y));
+
+    float3x3 scales_matrix = float3x3(s[0], 0   , 0,
+                                     0   , s[1], 0,
+                                     0   , 0   , s[2]);
+
+    float3x3 L = mul(rotation_matrix, scales_matrix);
+
+    return mul(L, transpose(L));
+}
+
 [AutoPyBindCUDA]
 [CUDAKernel]
 [Differentiable]
 void tiles_touched_per_gaussian(DiffTensorView xyz_ws,
-                                DiffTensorView cov_ws,
+                                DiffTensorView rotations,
+                                DiffTensorView scales,
+                                DiffTensorView sh_coeffs,
+                                uint active_sh,
                                 TensorView<float> world_view_transform,
                                 TensorView<float> proj_mat,
+                                TensorView<float> cam_pos,
                                 TensorView<int32_t> out_tiles_touched,
                                 TensorView<float> out_rect_tile_space,
                                 TensorView<int32_t> out_radii,
                                 DiffTensorView out_xyz_vs,
                                 DiffTensorView out_inv_cov_vs,
+                                DiffTensorView out_rgb,
                                 no_diff float fovy,
                                 no_diff float fovx,
                                 uint image_height,
@@ -77,10 +101,15 @@ void tiles_touched_per_gaussian(DiffTensorView xyz_ws,
     if (g_xyz_vs.z <= 0.2) {
         return;
     }
+    float4 g_rotations = float4(rotations[uint2(g_idx, 0)], rotations[uint2(g_idx, 1)],
+                                rotations[uint2(g_idx, 2)], rotations[uint2(g_idx, 3)]);
+    float3 g_scales = float3(scales[(uint2(g_idx, 0))], scales[(uint2(g_idx, 1))], scales[(uint2(g_idx, 2))]);
+    float3 g_cam_pos = float3(no_diff cam_pos[0], no_diff cam_pos[1], no_diff cam_pos[2]);
 
-    float3x3 g_cov_ws = float3x3(cov_ws[uint3(g_idx, 0, 0)], cov_ws[uint3(g_idx, 0, 1)], cov_ws[uint3(g_idx, 0, 2)],
-                                 cov_ws[uint3(g_idx, 1, 0)], cov_ws[uint3(g_idx, 1, 1)], cov_ws[uint3(g_idx, 1, 2)],
-                                 cov_ws[uint3(g_idx, 2, 0)], cov_ws[uint3(g_idx, 2, 1)], cov_ws[uint3(g_idx, 2, 2)]);
+    SpherHarmCoeffs g_sh_coeffs = read_spherical_harmonics_coeffs(g_idx, sh_coeffs, active_sh);
+    float3 rgb = compute_color_from_sh_coeffs(g_sh_coeffs, g_xyz_ws, g_cam_pos, active_sh);
+
+    float3x3 g_cov_ws = get_covariance_from_quat_scales(g_rotations, g_scales);
     float2x2 g_cov_vs = covariance_3d_to_2d(cam, g_xyz_ws, g_cov_ws);
 
     float det = (g_cov_vs[0][0] * g_cov_vs[1][1] - g_cov_vs[0][1] * g_cov_vs[1][0]);
@@ -124,6 +153,9 @@ void tiles_touched_per_gaussian(DiffTensorView xyz_ws,
     out_inv_cov_vs.storeOnce(uint3(g_idx, 0, 1), g_inv_cov_vs[0][1]);
     out_inv_cov_vs.storeOnce(uint3(g_idx, 1, 0), g_inv_cov_vs[1][0]);
     out_inv_cov_vs.storeOnce(uint3(g_idx, 1, 1), g_inv_cov_vs[1][1]);
+    out_rgb.storeOnce(uint2(g_idx, 0), rgb.r);
+    out_rgb.storeOnce(uint2(g_idx, 1), rgb.g);
+    out_rgb.storeOnce(uint2(g_idx, 2), rgb.b);
 }
 
 [AutoPyBindCUDA]
