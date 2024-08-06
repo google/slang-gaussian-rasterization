@@ -15,7 +15,7 @@
 import slangtorch
 import os
 
-shaders_path = "./internal/slang/"
+shaders_path = "./submodules/slang_gaussian_rasterization/internal/slang/"
 
 tile_shader = slangtorch.loadModule(os.path.join(shaders_path, "tile_shader.slang"))
 alpha_blend = slangtorch.loadModule(os.path.join(shaders_path, "alpha_blend.slang"))

@@ -188,10 +188,19 @@ float3 project_point(float3 point, Camera cam) {
 
 [Differentiable]
 float3x3 compute_jacobian(float3 xyz_ws, Camera cam) {
-    float h_x = cam.W / (2.0 * tan(cam.fovx / 2.0));
-    float h_y = cam.H / (2.0 * tan(cam.fovy / 2.0));
+    float tan_half_fovx = tan(cam.fovx / 2.0);
+    float tan_half_fovy = tan(cam.fovy / 2.0);
+    float h_x = cam.W / (2.0 * tan_half_fovx);
+    float h_y = cam.H / (2.0 * tan_half_fovy);
 
     float3 t = geom_transform_points(xyz_ws, cam.world_view_transform);
+
+    const float limx = 1.3f * tan_half_fovx;
+    const float limy = 1.3f * tan_half_fovy;
+    const float txtz = t.x / t.z;
+    const float tytz = t.y / t.z;
+    t.x = min(limx, max(-limx, txtz)) * t.z;
+    t.y = min(limy, max(-limy, tytz)) * t.z;
 
     float3x3 J = float3x3(h_x / t.z, 0.0, -(h_x * t.x) / (t.z * t.z),
                           0.0, h_y / t.z, -(h_y * t.y) / (t.z * t.z),
@@ -201,10 +210,9 @@ float3x3 compute_jacobian(float3 xyz_ws, Camera cam) {
 }
 
 [Differentiable]
-float2x2 covariance_3d_to_2d(Camera cam, float3 xyz_ws, float3x3 cov_ws, uint32_t g_idx) {
+float2x2 covariance_3d_to_2d(Camera cam, float3 xyz_ws, float3x3 cov_ws) {
     float3x3 R = (float3x3)cam.world_view_transform;
     float3x3 J = compute_jacobian(xyz_ws, cam);
-
     float3x3 cov_vs = mul(J, mul(R, mul(cov_ws, mul(transpose(R), transpose(J)))));
     cov_vs[0][0] += 0.3;
     cov_vs[1][1] += 0.3;

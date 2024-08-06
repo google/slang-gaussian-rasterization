@@ -74,22 +74,19 @@ void tiles_touched_per_gaussian(DiffTensorView xyz_ws,
                              xyz_ws[uint2(g_idx, 1)],
                              xyz_ws[uint2(g_idx, 2)]);
     float3 g_xyz_vs = project_point(g_xyz_ws, cam);
-    if (g_xyz_vs.z <= 0.2 || g_xyz_vs.x < -3.0 || g_xyz_vs.x > 3.0 || g_xyz_vs.y < -3.0 || g_xyz_vs.y > 3.0) {
+    if (g_xyz_vs.z <= 0.2) {
         return;
     }
 
     float3x3 g_cov_ws = float3x3(cov_ws[uint3(g_idx, 0, 0)], cov_ws[uint3(g_idx, 0, 1)], cov_ws[uint3(g_idx, 0, 2)],
                                  cov_ws[uint3(g_idx, 1, 0)], cov_ws[uint3(g_idx, 1, 1)], cov_ws[uint3(g_idx, 1, 2)],
                                  cov_ws[uint3(g_idx, 2, 0)], cov_ws[uint3(g_idx, 2, 1)], cov_ws[uint3(g_idx, 2, 2)]);
-    float2x2 g_cov_vs = covariance_3d_to_2d(cam, g_xyz_ws, g_cov_ws, g_idx);
+    float2x2 g_cov_vs = covariance_3d_to_2d(cam, g_xyz_ws, g_cov_ws);
 
     float det = (g_cov_vs[0][0] * g_cov_vs[1][1] - g_cov_vs[0][1] * g_cov_vs[1][0]);
     if (det == 0.0f)
         return;
     float det_inv = 1.f / det;
-    if (det_inv < 1e-8) {
-        return;
-    }
 
     // Compute extent in screen space (by finding eigenvalues of
     // 2D covariance matrix). Use extent to compute a bounding rectangle

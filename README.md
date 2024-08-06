@@ -1,6 +1,6 @@
-# Widget frobulator
+# Slang.D Gaussian Splatting Rasterizer
 
-This project is all about frobulating cool new widgets.
+This repository contains a Slang.D implementation of the CUDA acclerated rasterizer that is described in the [3D Gaussian Splatting for Real-Time Rendering of Radiance Fields](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/). We provide only the rasterizer and API bindings to the most popular implementations of the complete 3D Gaussian Splatting implementation, the original inria code-base and [gsplat from nerf-studio](https://github.com/nerfstudio-project/gsplat). We open source this extra library because the Slang.D framework allows for mostly automatic differentiation of the renderer something we consider a valuable tool for accelerating research.
 
 ## Contributing
 

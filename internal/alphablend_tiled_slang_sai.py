@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import torch
-import internal.splatter.render_utils as gs_render_utils
-import internal.splatter.slang_shaders.slang_modules as slang_modules
-from internal.splatter.vertex_shader import vertex_shader
-from internal.splatter.tile_shader_slang import tile_shader
-from internal.camera import Camera
+import submodules.slang_gaussian_rasterization.internal.utils as gs_render_utils
+import submodules.slang_gaussian_rasterization.internal.slang.slang_modules as slang_modules
+from submodules.slang_gaussian_rasterization.internal.tile_shader_slang import tile_shader
 import numpy as np
 
 def set_grad(var):
@@ -25,27 +23,27 @@ def set_grad(var):
         var.grad = grad
     return hook
 
-def render_alphablend_tiled_slang_sai(camera, splats, tile_size, scene_scale):
-    render_grid = gs_render_utils.RenderGrid(camera.height,
-                                             camera.width,
+def render_alpha_blend_tiles_slang_raw(xyz_ws, cov_ws, rgb, opacity,
+                                       world_view_transform, proj_mat,
+                                       fovy, fovx, height, width, tile_size=16):
+    
+    render_grid = gs_render_utils.RenderGrid(height,
+                                             width,
                                              tile_height=tile_size,
                                              tile_width=tile_size)
-
-    cov_ws, rgb, opacity = gs_render_utils.get_cov_rgb_opacity(splats, scene_scale)
-    scaled_camera = Camera.create_scale_camera(camera, scene_scale)
-
-    sorted_gauss_idx, tile_ranges, radii, xyz_vs, inv_cov_vs = tile_shader(splats.xyz*scene_scale,
-                                                                           cov_ws, 
-                                                                           scaled_camera,
+    sorted_gauss_idx, tile_ranges, radii, xyz_vs, inv_cov_vs = tile_shader(xyz_ws,
+                                                                           cov_ws,
+                                                                           world_view_transform,
+                                                                           proj_mat,
+                                                                           fovy,
+                                                                           fovx,
                                                                            render_grid)
+   
+    # retain_grad fails if called with torch.no_grad() under evaluation
     try:
         xyz_vs.retain_grad()
     except:
         pass
-
-
-    np.save("/work/src/slang_3dgs/output_just_render_alphablend/opacity.input", opacity.detach().cpu())
-    np.save("/work/src/slang_3dgs/output_just_render_alphablend/rgb.input", rgb.detach().cpu())
 
     image_rgb = AlphaBlendTiledRender.apply(
         sorted_gauss_idx,
@@ -57,12 +55,14 @@ def render_alphablend_tiled_slang_sai(camera, splats, tile_size, scene_scale):
         render_grid)
     
     render_pkg = {
-        'screenspace_points': xyz_vs,
+        'render': image_rgb.permute(2,0,1)[:3, ...],
+        'viewspace_points': xyz_vs,
         'visibility_filter': radii > 0,
         'radii': radii,
     }
-    np.save("/work/src/slang_3dgs/output_just_render_alphablend/image_rgb.output", image_rgb.detach().cpu())
-    return image_rgb.permute(2,0,1)[:3, ...], render_pkg
+    
+    return render_pkg
+
 
 class AlphaBlendTiledRender(torch.autograd.Function):
     @staticmethod
@@ -137,8 +137,4 @@ class AlphaBlendTiledRender(torch.autograd.Function):
                       render_grid.grid_height, 1)
         )
         
-        if torch.isnan(xyz_vs_grad).any() or torch.isnan(inv_cov_vs_grad).any() or torch.isnan(opacity_grad).any() or torch.isnan(rgb_grad).any():
-            import pdb; pdb.set_trace()
-            print("BOOHOOO!")
-
         return None, None, xyz_vs_grad, inv_cov_vs_grad, opacity_grad, rgb_grad, None, None

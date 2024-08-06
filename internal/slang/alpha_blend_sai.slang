@@ -43,7 +43,7 @@ float4 alpha_blend(TensorView<int32_t> sorted_gauss_idx,
                  uint32_t H,
                  uint32_t W)
 {
-    float2 center_pix_coord = pix_coord + 0.5;
+    float2 center_pix_coord = pix_coord;
 
     float4 curr_pixel_state = float4(0.f, 0.f, 0.f, 1.f);
 
@@ -84,7 +84,7 @@ void bwd_alpha_blend(TensorView<int32_t> sorted_gauss_idx,
                      uint32_t W,
                      float4 d_current_pixel_state)
 {
-    float2 center_pix_coord = pix_coord + 0.5;
+    float2 center_pix_coord = pix_coord;
     DifferentialPair<float2> dp_center_pix_coord = diffPair(center_pix_coord);
 
     // Load the final pixel state.
