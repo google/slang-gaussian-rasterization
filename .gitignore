@@ -1,4 +1,7 @@
 __pycache__/
 .slangtorch_cache
 *.lock
+build/
+dist/
+*.egg-info
 *.py[cod]

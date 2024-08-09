@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import slangtorch
-import os
+import math
 
-shaders_path = "./submodules/slang_gaussian_rasterization/internal/slang/"
-
-tile_shader = slangtorch.loadModule(os.path.join(shaders_path, "tile_shader.slang"))
-alpha_blend = slangtorch.loadModule(os.path.join(shaders_path, "alpha_blend.slang"))
-alpha_blend_sai = slangtorch.loadModule(os.path.join(shaders_path, "alpha_blend_sai.slang"))
+class RenderGrid():    
+  def __init__(self, image_height, image_width, tile_width, tile_height):
+    self.image_height = image_height
+    self.image_width = image_width
+    self.tile_height = tile_height
+    self.tile_width = tile_width
+    self.grid_height = math.ceil(image_height / tile_height)
+    self.grid_width = math.ceil(image_width  / tile_width)

@@ -1,0 +1,2 @@
+global-exclude *~ *.py[cod] *.so *.lock
+include slang_gaussian_rasterization/internal/slang/*.slang

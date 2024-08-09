@@ -1,0 +1,68 @@
+From fb7e66d0f22893d7c1ac1f6b48659bd67d7efb02 Mon Sep 17 00:00:00 2001
+From: George Kopanas <gkopanas@google.com>
+Date: Mon, 12 Aug 2024 15:53:08 +0100
+Subject: [PATCH] support multiple render backends
+
+---
+ train.py | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/train.py b/train.py
+index 5d819b3..fd4accf 100644
+--- a/train.py
++++ b/train.py
+@@ -13,7 +13,7 @@ import os
+ import torch
+ from random import randint
+ from utils.loss_utils import l1_loss, ssim
+-from gaussian_renderer import render, network_gui
++from gaussian_renderer import network_gui
+ import sys
+ from scene import Scene, GaussianModel
+ from utils.general_utils import safe_state
+@@ -56,7 +56,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+                 net_image_bytes = None
+                 custom_cam, do_training, pipe.convert_SHs_python, pipe.compute_cov3D_python, keep_alive, scaling_modifer = network_gui.receive()
+                 if custom_cam != None:
+-                    net_image = render(custom_cam, gaussians, pipe, background, scaling_modifer)["render"]
++                    net_image = gaussian_renderer.render(custom_cam, gaussians, pipe, background, scaling_modifer)["render"]
+                     net_image_bytes = memoryview((torch.clamp(net_image, min=0, max=1.0) * 255).byte().permute(1, 2, 0).contiguous().cpu().numpy())
+                 network_gui.send(net_image_bytes, dataset.source_path)
+                 if do_training and ((iteration < int(opt.iterations)) or not keep_alive):
+@@ -83,7 +83,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+ 
+         bg = torch.rand((3), device="cuda") if opt.random_background else background
+ 
+-        render_pkg = render(viewpoint_cam, gaussians, pipe, bg)
++        render_pkg = gaussian_renderer.render(viewpoint_cam, gaussians, pipe, bg)
+         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+ 
+         # Loss
+@@ -104,7 +104,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+                 progress_bar.close()
+ 
+             # Log and save
+-            training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render, (pipe, background))
++            training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, gaussian_renderer.render, (pipe, background))
+             if (iteration in saving_iterations):
+                 print("\n[ITER {}] Saving Gaussians".format(iteration))
+                 scene.save(iteration)
+@@ -205,9 +205,15 @@ if __name__ == "__main__":
+     parser.add_argument("--quiet", action="store_true")
+     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
+     parser.add_argument("--start_checkpoint", type=str, default = None)
++    parser.add_argument("--render_backend", type=str, default="slang", choices=["slang", "inria_cuda"])
+     args = parser.parse_args(sys.argv[1:])
+     args.save_iterations.append(args.iterations)
+     
++    if args.render_backend == "inria_cuda":
++      import gaussian_renderer as gaussian_renderer
++    elif args.render_backend == "slang":
++      import slang_gaussian_rasterization.api.inria_3dgs as gaussian_renderer
++
+     print("Optimizing " + args.model_path)
+ 
+     # Initialize system state (RNG)
+-- 
+2.46.0.76.ge559c4bf1a-goog
+
