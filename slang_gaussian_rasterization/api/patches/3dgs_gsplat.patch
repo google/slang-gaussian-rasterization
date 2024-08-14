@@ -1,0 +1,126 @@
+From 6f74c5084353c0b913e4c9fdfdc7a543c027fd9f Mon Sep 17 00:00:00 2001
+From: George Kopanas <gkopanas@google.com>
+Date: Wed, 14 Aug 2024 14:04:21 +0100
+Subject: [PATCH] support multiple render backends
+
+---
+ examples/simple_trainer.py | 17 +++++++++++++----
+ gsplat/strategy/default.py | 30 ++++++++++++++++++++----------
+ 2 files changed, 33 insertions(+), 14 deletions(-)
+
+diff --git a/examples/simple_trainer.py b/examples/simple_trainer.py
+index 71dfa4c..26236c4 100644
+--- a/examples/simple_trainer.py
++++ b/examples/simple_trainer.py
+@@ -15,7 +15,6 @@ import tqdm
+ import tyro
+ import viser
+ from gsplat.distributed import cli
+-from gsplat.rendering import rasterization
+ from gsplat.strategy import DefaultStrategy, MCMCStrategy
+ from torch import Tensor
+ from torch.nn.parallel import DistributedDataParallel as DDP
+@@ -133,6 +132,8 @@ class Config:
+     # Save training images to tensorboard
+     tb_save_image: bool = False
+ 
++    render_backend: str = "slang"
++
+     def adjust_steps(self, factor: float):
+         self.eval_steps = [int(i * factor) for i in self.eval_steps]
+         self.save_steps = [int(i * factor) for i in self.save_steps]
+@@ -634,6 +635,7 @@ class Runner:
+                     state=self.strategy_state,
+                     step=step,
+                     info=info,
++                    slang_variant=cfg.render_backend=="slang",
+                     packed=cfg.packed,
+                 )
+             elif isinstance(self.cfg.strategy, MCMCStrategy):
+@@ -798,11 +800,12 @@ class Runner:
+                 sh_degree=cfg.sh_degree,
+                 near_plane=cfg.near_plane,
+                 far_plane=cfg.far_plane,
+-                render_mode="RGB+ED",
++                render_mode="RGB",
+             )  # [1, H, W, 4]
+             colors = torch.clamp(renders[0, ..., 0:3], 0.0, 1.0)  # [H, W, 3]
+-            depths = renders[0, ..., 3:4]  # [H, W, 1]
+-            depths = (depths - depths.min()) / (depths.max() - depths.min())
++            #depths = renders[0, ..., 3:4]  # [H, W, 1]
++            #depths = (depths - depths.min()) / (depths.max() - depths.min())
++            depths = torch.zeros_like(colors[0, ..., 0:1])
+ 
+             # write images
+             canvas = torch.cat(
+@@ -912,4 +915,10 @@ if __name__ == "__main__":
+ 
+     cfg = tyro.cli(subcommand_type)
+     cfg.adjust_steps(cfg.steps_scaler)
++
++    if cfg.render_backend=="gsplat_cuda":
++      from gsplat.rendering import rasterization
++    elif cfg.render_backend=="slang":
++      from slang_gaussian_rasterization.api.gsplat_3dgs import rasterization
++
+     cli(main, cfg, verbose=True)
+diff --git a/gsplat/strategy/default.py b/gsplat/strategy/default.py
+index 8a755e4..6151676 100644
+--- a/gsplat/strategy/default.py
++++ b/gsplat/strategy/default.py
+@@ -147,13 +147,14 @@ class DefaultStrategy(Strategy):
+         state: Dict[str, Any],
+         step: int,
+         info: Dict[str, Any],
++        slang_variant: bool,
+         packed: bool = False,
+     ):
+         """Callback function to be executed after the `loss.backward()` call."""
+         if step >= self.refine_stop_iter:
+             return
+ 
+-        self._update_state(params, state, info, packed=packed)
++        self._update_state(params, state, info, slang_variant, packed=packed)
+ 
+         if step > self.refine_start_iter and step % self.refine_every == 0:
+             # grow GSs
+@@ -190,18 +191,27 @@ class DefaultStrategy(Strategy):
+         params: Union[Dict[str, torch.nn.Parameter], torch.nn.ParameterDict],
+         state: Dict[str, Any],
+         info: Dict[str, Any],
++        slang_variant: bool,
+         packed: bool = False,
+     ):
+-        for key in ["means2d", "width", "height", "n_cameras", "radii", "gaussian_ids"]:
+-            assert key in info, f"{key} is required but missing."
+-
+-        # normalize grads to [-1, 1] screen space
+-        if self.absgrad:
+-            grads = info["means2d"].absgrad.clone()
++        if slang_variant:
++          for key in ["means2d", "radii"]:
++              assert key in info, f"{key} is required but missing."
++          if self.absgrad:
++              grads = info["means2d"].absgrad.clone()[None,:,:2]
++          else:
++              grads = info["means2d"].grad.clone()[None,:,:2]
+         else:
+-            grads = info["means2d"].grad.clone()
+-        grads[..., 0] *= info["width"] / 2.0 * info["n_cameras"]
+-        grads[..., 1] *= info["height"] / 2.0 * info["n_cameras"]
++          for key in ["means2d", "width", "height", "n_cameras", "radii", "gaussian_ids"]:
++              assert key in info, f"{key} is required but missing."
++
++          # normalize grads to [-1, 1] screen space
++          if self.absgrad:
++              grads = info["means2d"].absgrad.clone()
++          else:
++              grads = info["means2d"].grad.clone()
++          grads[..., 0] *= info["width"] / 2.0 * info["n_cameras"]
++          grads[..., 1] *= info["height"] / 2.0 * info["n_cameras"]
+ 
+         # initialize state on the first run
+         n_gaussian = len(list(params.values())[0])
+-- 
+2.46.0.76.ge559c4bf1a-goog
+

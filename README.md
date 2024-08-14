@@ -34,21 +34,36 @@ Now while you can use this pip package as any other python package, any change y
 
 ## Using it with popular 3DGS optimization libraries
 
-To use the renderer during training we need to plug this in either the original inria implementation or nerf-studio:
+While this library can act as a stand-alone rendering library for 3D-Gaussian Splatting. The most often use case of this library is use it during training of a 3DGS scene with either the original inria implementation or nerf-studio:
 
 **Original Inria Implementation:** 
+
+Pre-requisite: Download and install the [original inria repository](https://github.com/graphdeco-inria/gaussian-splatting/) by following the README file. Make sure that you can succesfully run the training script before we start the modifications.
 
 To run the original inria training code with the slang back-end we need to patch [train.py](https://github.com/graphdeco-inria/gaussian-splatting/blob/main/train.py). The following commands asssume that your 3dgs-inria code base is at [path-to-3dgs-inria]
 
 ```bash
 cd [path-to-3dgs-inria]
 wget [place-holder-for-path-to-patch]
-git am 3dgs.patch
+git am 3dgs_inria.patch
 ```
 
-Now you can run the train.py scripts as described in the inria 3DGS repo and the renderer you will be using is from the slang-gaussian-rasterization package.
+Now you can run the train.py script as described in the inria 3DGS repo and the renderer you will be using is from the slang-gaussian-rasterization package. If you want to fall-back to the original cuda renderer you have to pass '--render_backend inria_cuda' to the train.py script.
 
 **gsplat Implementation:** 
+Similar to the original inria implementation we need to patch a few files from gsplat repo.
+
+First we will clone the repo and patch it:
+```bash
+git clone https://github.com/nerfstudio-project/gsplat.git
+cd gsplat
+wget [place-holder-for-path-to-patch]
+git am 3dgs_gsplat.patch
+pip install .
+```
+Now you can run the examples/simple_trainer.py script as described in the gsplat repo and by default the renderer it will use is from the slang-gaussian-rasterization package. If you want to fall-back to the original cuda renderer from gsplat you have to pass '--render_backend gsplat_cuda' to the examples/simple_trainer.py script.
+
+## Perfomance and Evaluation
 [TODO]
 
 ## Contributing
