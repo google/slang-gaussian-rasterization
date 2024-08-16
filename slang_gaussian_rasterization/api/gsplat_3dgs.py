@@ -96,6 +96,6 @@ def rasterization(
 
 
   meta = {"radii": render_pkg["radii"][None, ...],
-          'means2d': render_pkg["viewspace_points"]}
+          "means2d": render_pkg["viewspace_points"]}
 
   return render_pkg["render"].permute(1,2,0)[None,...], None, meta

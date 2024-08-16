@@ -15,12 +15,7 @@
 import torch
 import slang_gaussian_rasterization.internal.slang.slang_modules as slang_modules
 import math
-
-def sort_values_by_keys(keys, values):
-  """Sorts a values tensor by a corresponding keys tensor."""
-  sorted_keys, idxs = torch.sort(keys)
-  sorted_val = values[idxs]
-  return sorted_val, sorted_keys
+from slang_gaussian_rasterization.internal.sort_by_keys import sort_by_keys_cub
 
 def vertex_and_tile_shader(xyz_ws,
                            rotations,
@@ -91,8 +86,7 @@ def vertex_and_tile_shader(xyz_ws,
             gridSize=(math.ceil(n_points/256), 1, 1)
       )    
 
-
-      sorted_gauss_idx, sorted_keys = sort_values_by_keys(unsorted_keys, unsorted_gauss_idx)
+      sorted_keys, sorted_gauss_idx = sort_by_keys_cub.sort_by_keys(unsorted_keys, unsorted_gauss_idx)
 
       tile_ranges = torch.zeros((render_grid.grid_height*render_grid.grid_width, 2), 
                                 device="cuda",

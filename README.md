@@ -66,6 +66,12 @@ Now you can run the examples/simple_trainer.py script as described in the gsplat
 ## Perfomance and Evaluation
 [TODO]
 
+## Nice things to have
+ - [x] Sort by value in one efficient call to the cu library instead of sorting the keys and indexing the value tensor.
+ - [ ] Investigate what makes the forward/backward pass X% slower.
+ - [ ] Support more gsplat rendering features.
+
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
