@@ -86,7 +86,8 @@ def vertex_and_tile_shader(xyz_ws,
             gridSize=(math.ceil(n_points/256), 1, 1)
       )    
 
-      sorted_keys, sorted_gauss_idx = sort_by_keys_cub.sort_by_keys(unsorted_keys, unsorted_gauss_idx)
+      highest_tile_id_msb = (render_grid.grid_width*render_grid.grid_height).bit_length()
+      sorted_keys, sorted_gauss_idx = sort_by_keys_cub.sort_by_keys(unsorted_keys, unsorted_gauss_idx, highest_tile_id_msb)
 
       tile_ranges = torch.zeros((render_grid.grid_height*render_grid.grid_width, 2), 
                                 device="cuda",

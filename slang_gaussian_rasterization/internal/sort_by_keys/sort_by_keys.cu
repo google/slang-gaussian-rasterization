@@ -9,7 +9,8 @@ namespace extension_cpp {
   std::tuple<torch::Tensor, torch::Tensor>
   sort_by_keys(
     const at::Tensor keys,
-    const at::Tensor values)
+    const at::Tensor values,
+    const int highest_tile_id_msb)
   {
     TORCH_CHECK(keys.sizes() == values.sizes());
     TORCH_CHECK(keys.dtype() == torch::kLong);
@@ -44,7 +45,7 @@ namespace extension_cpp {
       d_temp_storage, temp_storage_bytes,
       keys_ptr, keys_sorted_ptr,
       values_ptr, values_sorted_ptr,
-      keys.sizes()[0]);
+      keys.sizes()[0], 0, 32 + highest_tile_id_msb);
 
     return std::make_tuple(keys_sorted_contig, values_sorted_contig);
   }
