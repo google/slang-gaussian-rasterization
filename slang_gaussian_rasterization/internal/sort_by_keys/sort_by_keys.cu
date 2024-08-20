@@ -47,6 +47,8 @@ namespace extension_cpp {
       values_ptr, values_sorted_ptr,
       keys.sizes()[0], 0, 32 + highest_tile_id_msb);
 
+    cudaFree(d_temp_storage);
+
     return std::make_tuple(keys_sorted_contig, values_sorted_contig);
   }
 

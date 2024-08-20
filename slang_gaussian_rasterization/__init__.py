@@ -14,3 +14,4 @@
 
 __version__ = "0.1.0"
 __author__ = 'George Kopanas'
+__credits__ = 'Google'

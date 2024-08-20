@@ -1,6 +1,8 @@
 # Slang.D Gaussian Splatting Rasterizer
 
-This repository contains a Slang.D implementation of the CUDA accelerated rasterizer that is described in the [3D Gaussian Splatting for Real-Time Rendering of Radiance Fields](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/). We provide only the rasterizer and API bindings to the most popular implementations of the complete 3D Gaussian Splatting implementation: 1) the [original inria code-base](https://github.com/graphdeco-inria/gaussian-splatting) and 2) [gsplat from nerf-studio](https://github.com/nerfstudio-project/gsplat). 
+This repository contains a Slang.D implementation of the CUDA accelerated rasterizer that is described in the [3D Gaussian Splatting for Real-Time Rendering of Radiance Fields](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/). We provide only the rasterizer and API bindings to the most popular implementations of the complete 3D Gaussian Splatting implementations:
+1) The original inria [code-base](https://github.com/graphdeco-inria/gaussian-splatting) and 
+2) [gsplat](https://github.com/nerfstudio-project/gsplat) from nerf-studio. 
 
 *But why Slang.D?*
 

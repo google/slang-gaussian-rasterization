@@ -86,7 +86,7 @@ float4 alpha_blend(TensorView<int32_t> sorted_gauss_idx,
                 if (gauss_rgba.a < 1.0f / 255.0f)
                     continue;
 
-                float4 new_pixel_state = update_pixel_state(curr_pixel_state, gauss_rgba); // [Differentiable] function
+                float4 new_pixel_state = update_pixel_state(curr_pixel_state, gauss_rgba);
                 if (new_pixel_state.a < 0.0001f) {
                     // This Splat never registred so we subtract it before we break.
                     local_n_contrib--;
