@@ -12,27 +12,19 @@ This allows for a **single code-base** of the rendering code which has the capab
 
 On top of that and potentially the most important for *research* is the ability of Slang.D to **differentiate automatically** through complicated rendering kernels that include *arbitrary control flow, user-defined types, dynamic dispatch, generics, and global memory accesses.*
 
+This code is authored by: [George Kopanas](https://grgkopanas.github.io/)
 
+## Installing
 
-## Installing for Users [Not ready yet!]
-
-If you only care about using this library and you do not want to modify it's contents the most convenient way is to simply pip install it:
-
-```bash
-pip install slang-gaussian-rasterization
-```
-
-## Installing for Developers
-
-If you want to modify the content of this library and you want to experiment with the renderer you need to install the pip package in development mode.
+To install this library you need to install it as a pip package
 
 ```bash
-git clone [placeholder]
+git clone https://github.com/grgkopanas/slang-gaussian-rasterization.git
 cd ./slang-gaussian-rasterization
 pip install -e .
 ```
 
-Now while you can use this pip package as any other python package, any change you do either on the python side or on the Slang.D side will automatically reflect in your installed package without the need to pip install every time you make a change.
+Now while you can use this pip package as any other python package, because we installed it in development mode any change you do either on the python side or on the Slang.D side will automatically reflect in your installed package without the need to pip install every time you make a change.
 
 ## Using it with popular 3DGS optimization libraries
 
@@ -40,17 +32,17 @@ While this library can act as a stand-alone rendering library for 3D-Gaussian Sp
 
 **Original Inria Implementation:** 
 
-Pre-requisite: Download and install the [original inria repository](https://github.com/graphdeco-inria/gaussian-splatting/) by following the README file. Make sure that you can succesfully run the training script before we start the modifications.
+Pre-requisite: Download and install the [original inria repository](https://github.com/graphdeco-inria/gaussian-splatting/) by following the README file. Make sure that you can succesfully run the training script before you start the modifications.
 
-To run the original inria training code with the slang back-end we need to patch [train.py](https://github.com/graphdeco-inria/gaussian-splatting/blob/main/train.py). The following commands asssume that your 3dgs-inria code base is at [path-to-3dgs-inria]
+To run the original inria training code with the slang back-end we need to patch [train.py](https://github.com/graphdeco-inria/gaussian-splatting/blob/main/train.py). The following commands asssume that your 3dgs-inria code-base is at [path-to-3dgs-inria]
 
 ```bash
 cd [path-to-3dgs-inria]
-wget [place-holder-for-path-to-patch]
+wget https://github.com/grgkopanas/slang-gaussian-rasterization/raw/main/slang_gaussian_rasterization/api/patches/3dgs_inria.patch
 git am 3dgs_inria.patch
 ```
 
-Now you can run the train.py script as described in the inria 3DGS repo and the renderer you will be using is from the slang-gaussian-rasterization package. If you want to fall-back to the original cuda renderer you have to pass '--render_backend inria_cuda' to the train.py script.
+Now you can run the train.py script as described in the inria 3DGS repo and the renderer you will be using is from the slang-gaussian-rasterization package. If you want to fall-back to the original cuda renderer you have to pass ```--render_backend inria_cuda``` to the train.py script.
 
 **gsplat Implementation:** 
 Similar to the original inria implementation we need to patch a few files from gsplat repo.
@@ -59,14 +51,24 @@ First we will clone the repo and patch it:
 ```bash
 git clone https://github.com/nerfstudio-project/gsplat.git
 cd gsplat
-wget [place-holder-for-path-to-patch]
+wget https://github.com/grgkopanas/slang-gaussian-rasterization/raw/main/slang_gaussian_rasterization/api/patches/3dgs_gsplat.patch
 git am 3dgs_gsplat.patch
 pip install .
 ```
-Now you can run the examples/simple_trainer.py script as described in the gsplat repo and by default the renderer it will use is from the slang-gaussian-rasterization package. If you want to fall-back to the original cuda renderer from gsplat you have to pass '--render_backend gsplat_cuda' to the examples/simple_trainer.py script.
+Now you can run the examples/simple_trainer.py script as described in the gsplat repo and by default the renderer it will use is from the slang-gaussian-rasterization package. If you want to fall-back to the original cuda renderer from gsplat you have to pass ```--render_backend gsplat_cuda``` to the examples/simple_trainer.py script.
 
 ## Perfomance and Evaluation
-[TODO]
+We run ```Bicycle-MipNeRF360``` as a representative scene to evaluate the perfomance and correctness of the released code.
+
+| Code Variant  | Trainig Time | PSNR | 
+| --------      | -------      | -----|
+| 7k Inria - CUDA   | 3m 55s   | 23.40   |
+| 7k Inria - Slang  | 4m 44s   | 23.41 |
+| 30k Inria - CUDA  | 33m 10s  | 32.1 |
+| 30k Inria - Slang | 36m 37s  |      |
+
+Tested with an NVIDIA RTX 4090.
+
 
 ## Nice things to have
  - [x] Sort by value in one efficient call to the cu library instead of sorting the keys and indexing the value tensor.
@@ -81,6 +83,10 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 ## License
 
 Apache 2.0; see [`LICENSE`](LICENSE) for details.
+
+## Acknowledgements
+
+I would like to thank Sai Praveen Bangaru for the great help with Slang and Alexander Mai that opened my eyes on this great tool.
 
 ## Disclaimer
 
