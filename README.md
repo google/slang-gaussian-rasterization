@@ -64,8 +64,8 @@ We run ```Bicycle-MipNeRF360``` as a representative scene to evaluate the perfom
 | --------      | -------      | -----|
 | 7k Inria - CUDA   | 3m 55s   | 23.40   |
 | 7k Inria - Slang  | 4m 44s   | 23.41 |
-| 30k Inria - CUDA  | 33m 10s  | 32.1 |
-| 30k Inria - Slang | 36m 37s  |      |
+| 30k Inria - CUDA  | 33m 10s  | 25.10 |
+| 30k Inria - Slang | 36m 37s  | 25.12     |
 
 Tested with an NVIDIA RTX 4090.
 
