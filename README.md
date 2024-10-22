@@ -51,6 +51,7 @@ First we will clone the repo and patch it:
 ```bash
 git clone https://github.com/nerfstudio-project/gsplat.git
 cd gsplat
+git checkout fc1a3ca8b901279461a8dca2676eb9d600c18b7
 wget https://github.com/grgkopanas/slang-gaussian-rasterization/raw/main/slang_gaussian_rasterization/api/patches/3dgs_gsplat.patch
 git am 3dgs_gsplat.patch
 pip install .
